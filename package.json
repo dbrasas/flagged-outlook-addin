@@ -1,0 +1,14 @@
+{
+  "name": "flagged-by-duedate-addin",
+  "version": "1.0.0",
+  "description": "Outlook add-in: rodo flagged laiškus surūšiuotus pagal Due Date",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}

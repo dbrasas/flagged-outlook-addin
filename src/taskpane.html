@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="lt">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Flagged by Due Date</title>
+  <style>
+    :root {
+      --bg: #0f0f13;
+      --surface: #1a1a22;
+      --surface2: #22222e;
+      --border: #2e2e3e;
+      --accent: #f97316;
+      --accent2: #fb923c;
+      --red: #ef4444;
+      --yellow: #eab308;
+      --green: #22c55e;
+      --text: #f1f0ee;
+      --muted: #7c7c8e;
+      --overdue: #3d1515;
+      --today: #2d2200;
+      --soon: #1a2d1a;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .logo {
+      width: 28px;
+      height: 28px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+
+    h1 {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      letter-spacing: 0.2px;
+    }
+
+    .subtitle {
+      font-size: 10px;
+      color: var(--muted);
+      margin-top: 1px;
+    }
+
+    .refresh-btn {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      border-radius: 6px;
+      padding: 6px 10px;
+      font-size: 11px;
+      cursor: pointer;
+      transition: all 0.15s;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .refresh-btn:hover { background: var(--border); color: var(--text); }
+    .refresh-btn.spinning .icon { display: inline-block; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .stats-bar {
+      display: flex;
+      gap: 0;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .stat {
+      flex: 1;
+      padding: 8px 4px;
+      text-align: center;
+      border-right: 1px solid var(--border);
+    }
+    .stat:last-child { border-right: none; }
+
+    .stat-num {
+      font-size: 16px;
+      font-weight: 700;
+      line-height: 1;
+    }
+    .stat-label {
+      font-size: 9px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-top: 2px;
+    }
+    .stat.overdue .stat-num { color: var(--red); }
+    .stat.today .stat-num { color: var(--yellow); }
+    .stat.upcoming .stat-num { color: var(--green); }
+    .stat.nodate .stat-num { color: var(--muted); }
+
+    .auth-section {
+      padding: 24px 16px;
+      text-align: center;
+    }
+
+    .auth-section p {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 16px;
+      line-height: 1.5;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 20px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+    .btn-primary:hover { opacity: 0.9; }
+
+    .loading {
+      padding: 40px 16px;
+      text-align: center;
+      color: var(--muted);
+    }
+
+    .spinner {
+      width: 32px;
+      height: 32px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 12px;
+    }
+
+    .loading p { font-size: 12px; }
+
+    .error-box {
+      margin: 12px 16px;
+      background: #2d1515;
+      border: 1px solid #5c2626;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 11px;
+      color: #fca5a5;
+      display: none;
+    }
+
+    .section-header {
+      padding: 8px 16px 4px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .section-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .section-title {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--muted);
+    }
+
+    .section-count {
+      font-size: 10px;
+      color: var(--muted);
+      margin-left: auto;
+    }
+
+    .mail-list { padding: 0 8px 8px; }
+
+    .mail-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      margin-bottom: 4px;
+      cursor: pointer;
+      transition: all 0.12s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .mail-item::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 3px;
+    }
+
+    .mail-item.overdue { background: var(--overdue); border-color: #5c2626; }
+    .mail-item.overdue::before { background: var(--red); }
+    .mail-item.today { background: var(--today); border-color: #4a3800; }
+    .mail-item.today::before { background: var(--yellow); }
+    .mail-item.soon { background: var(--soon); border-color: #1e4a1e; }
+    .mail-item.soon::before { background: var(--green); }
+    .mail-item.nodate::before { background: var(--muted); }
+
+    .mail-item:hover {
+      transform: translateX(2px);
+      border-color: var(--accent);
+    }
+
+    .mail-row1 {
+      display: flex;
+      align-items: flex-start;
+      gap: 6px;
+      margin-bottom: 3px;
+    }
+
+    .mail-flag { font-size: 11px; flex-shrink: 0; margin-top: 1px; }
+
+    .mail-subject {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text);
+      flex: 1;
+      line-height: 1.3;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .mail-row2 {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding-left: 17px;
+    }
+
+    .mail-from {
+      font-size: 10px;
+      color: var(--muted);
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .due-badge {
+      font-size: 9px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      flex-shrink: 0;
+    }
+
+    .due-badge.overdue { background: #5c2626; color: #fca5a5; }
+    .due-badge.today { background: #4a3800; color: #fde047; }
+    .due-badge.soon { background: #1e4a1e; color: #86efac; }
+    .due-badge.nodate { background: var(--surface2); color: var(--muted); }
+
+    .empty {
+      padding: 40px 16px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .empty-icon { font-size: 32px; margin-bottom: 8px; }
+
+    #main-content { display: none; }
+    #auth-content { display: none; }
+    #loading-content { display: block; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <div class="logo">🚩</div>
+    <div>
+      <div class="h1-wrap">
+        <h1>Flagged by Due Date</h1>
+      </div>
+      <div class="subtitle">Surūšiuoti pagal terminą</div>
+    </div>
+  </div>
+  <button class="refresh-btn" onclick="refreshAll()" id="refreshBtn">
+    <span class="icon">↻</span> Atnaujinti
+  </button>
+</header>
+
+<!-- Loading -->
+<div id="loading-content" class="loading">
+  <div class="spinner"></div>
+  <p>Jungiamasi...</p>
+</div>
+
+<!-- Auth needed -->
+<div id="auth-content" class="auth-section">
+  <p>Reikalingas prisijungimas prie Microsoft Graph, kad galėtume nuskaityti flagged laiškus.</p>
+  <button class="btn-primary" onclick="doAuth()">🔐 Prisijungti</button>
+</div>
+
+<!-- Error -->
+<div class="error-box" id="errorBox"></div>
+
+<!-- Main content -->
+<div id="main-content">
+  <div class="stats-bar">
+    <div class="stat overdue">
+      <div class="stat-num" id="countOverdue">0</div>
+      <div class="stat-label">Vėluoja</div>
+    </div>
+    <div class="stat today">
+      <div class="stat-num" id="countToday">0</div>
+      <div class="stat-label">Šiandien</div>
+    </div>
+    <div class="stat upcoming">
+      <div class="stat-num" id="countSoon">0</div>
+      <div class="stat-label">Artimiausi</div>
+    </div>
+    <div class="stat nodate">
+      <div class="stat-num" id="countNoDate">0</div>
+      <div class="stat-label">Be datos</div>
+    </div>
+  </div>
+
+  <div id="mailListContainer"></div>
+
+<script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+<script src="https://alcdn.msauth.net/browser/2.37.0/js/msal-browser.min.js"></script>
+<script>
+  // ─── Config ───────────────────────────────────────────────────────────────
+  const CLIENT_ID = 'YOUR_CLIENT_ID_HERE'; // <-- pakeisk savo Azure App ID
+  const SCOPES   = ['Mail.Read'];
+
+  let accessToken = null;
+  let msalInstance = null;
+
+  // ─── Office init ──────────────────────────────────────────────────────────
+  Office.onReady(async () => {
+    if (CLIENT_ID === 'YOUR_CLIENT_ID_HERE') {
+      const authDiv = document.getElementById('auth-content');
+      authDiv.innerHTML = '<p style="color:var(--accent2); font-size:14px; font-weight:600;">⚠️ Setup Required</p><p>Please enter your Azure Client ID in <code>src/taskpane.html</code></p>';
+      show('auth-content');
+      return;
+    }
+
+    // Inicializuojame MSAL
+    const msalConfig = {
+      auth: {
+        clientId: CLIENT_ID,
+        authority: "https://login.microsoftonline.com/common",
+        redirectUri: "https://localhost:3000/src/taskpane.html"
+      },
+      cache: { cacheLocation: "localStorage" }
+    };
+    msalInstance = new msal.PublicClientApplication(msalConfig);
+    await msalInstance.initialize();
+
+    const currentAccounts = msalInstance.getAllAccounts();
+    if (currentAccounts.length > 0) {
+      try {
+        const response = await msalInstance.acquireTokenSilent({
+          scopes: SCOPES,
+          account: currentAccounts[0]
+        });
+        accessToken = response.accessToken;
+        await loadFlaggedMails();
+      } catch (err) {
+        show('auth-content');
+      }
+    } else {
+      show('auth-content');
+    }
+  });
+
+  // ─── Auth ─────────────────────────────────────────────────────────────────
+  async function doAuth() {
+    try {
+      show('loading-content');
+      const response = await msalInstance.loginPopup({ scopes: SCOPES });
+      accessToken = response.accessToken;
+      await loadFlaggedMails();
+    } catch (err) {
+      showError('Nepavyko prisijungti: ' + err.message);
+      show('auth-content');
+    }
+  }
+
+  async function refreshAll() {
+    const btn = document.getElementById('refreshBtn');
+    btn.classList.add('spinning');
+    try {
+      const currentAccounts = msalInstance.getAllAccounts();
+      if (currentAccounts.length > 0) {
+        const response = await msalInstance.acquireTokenSilent({
+          scopes: SCOPES,
+          account: currentAccounts[0],
+          forceRefresh: true
+        });
+        accessToken = response.accessToken;
+        await loadFlaggedMails();
+      } else {
+        throw new Error("Nėra prisijungto vartotojo");
+      }
+    } catch(e) {
+      showError('Nepavyko atnaujinti: ' + e.message);
+    }
+    btn.classList.remove('spinning');
+  }
+
+  // ─── Graph API ────────────────────────────────────────────────────────────
+  async function graphGet(url) {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const r = await fetch('https://graph.microsoft.com/v1.0' + url, {
+      headers: { 
+        Authorization: 'Bearer ' + accessToken,
+        'Prefer': 'outlook.timezone="' + tz + '"'
+      }
+    });
+    if (!r.ok) throw new Error('Graph klaida: ' + r.status);
+    return r.json();
+  }
+
+  async function loadFlaggedMails() {
+    show('loading-content');
+    hideError();
+
+    try {
+      let messages = [];
+      let url = "/me/messages?$filter=flag/flagStatus eq 'flagged'" +
+                "&$select=id,subject,from,flag,receivedDateTime,webLink" +
+                "&$top=100&$orderby=receivedDateTime desc";
+
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+      while (url) {
+        const data = url.startsWith('http')
+          ? await (await fetch(url, { 
+              headers: { 
+                Authorization: 'Bearer ' + accessToken,
+                'Prefer': 'outlook.timezone="' + tz + '"'
+              } 
+            })).json()
+          : await graphGet(url);
+
+        if (data.error) throw new Error(data.error.message);
+        messages = messages.concat(data.value || []);
+        url = data['@odata.nextLink'] || null;
+        if (messages.length >= 500) break; // saugiklis
+      }
+
+      renderMails(messages);
+      show('main-content');
+    } catch (err) {
+      showError('Klaida kraunant laiškus: ' + err.message);
+      show('main-content');
+    }
+  }
+
+  // ─── Render ───────────────────────────────────────────────────────────────
+  function renderMails(messages) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1);
+
+    // Kategorizuojame
+    const groups = { overdue: [], today: [], soon: [], nodate: [] };
+
+    for (const m of messages) {
+      const dueRaw = m.flag?.dueDateTime?.dateTime;
+      if (!dueRaw) {
+        groups.nodate.push({ ...m, _dueDate: null, _category: 'nodate' });
+        continue;
+      }
+      
+      const due = new Date(dueRaw);
+      due.setHours(0, 0, 0, 0);
+
+      let cat;
+      if (due < today)          cat = 'overdue';
+      else if (due < tomorrow)  cat = 'today';
+      else                       cat = 'soon';
+
+      groups[cat].push({ ...m, _dueDate: due, _category: cat });
+    }
+
+    // Rūšiuojame kiekvieną grupę: ankščiausia viršuje
+    const sortAsc = (a, b) => {
+      if (!a._dueDate && !b._dueDate) return 0;
+      if (!a._dueDate) return 1;
+      if (!b._dueDate) return -1;
+      return a._dueDate - b._dueDate;
+    };
+    for (const g of Object.values(groups)) g.sort(sortAsc);
+
+    // Stats
+    document.getElementById('countOverdue').textContent = groups.overdue.length;
+    document.getElementById('countToday').textContent   = groups.today.length;
+    document.getElementById('countSoon').textContent    = groups.soon.length;
+    document.getElementById('countNoDate').textContent  = groups.nodate.length;
+
+    const container = document.getElementById('mailListContainer');
+    container.innerHTML = '';
+
+    const sectionDefs = [
+      { key: 'overdue', label: 'Vėluoja',  color: '#ef4444', dot: '#ef4444' },
+      { key: 'today',   label: 'Šiandien', color: '#eab308', dot: '#eab308' },
+      { key: 'soon',    label: 'Artimiausi', color: '#22c55e', dot: '#22c55e' },
+      { key: 'nodate',  label: 'Be termino',      color: '#7c7c8e', dot: '#7c7c8e' },
+    ];
+
+    let totalRendered = 0;
+
+    for (const sec of sectionDefs) {
+      const items = groups[sec.key];
+      if (items.length === 0) continue;
+
+      const secHead = document.createElement('div');
+      secHead.className = 'section-header';
+      secHead.innerHTML = `
+        <div class="section-dot" style="background:${sec.dot}"></div>
+        <span class="section-title">${sec.label}</span>
+        <span class="section-count">${items.length}</span>
+      `;
+      container.appendChild(secHead);
+
+      const list = document.createElement('div');
+      list.className = 'mail-list';
+
+      for (const m of items) {
+        list.appendChild(buildMailCard(m));
+        totalRendered++;
+      }
+      container.appendChild(list);
+    }
+
+    if (totalRendered === 0) {
+      container.innerHTML = '<div class="empty"><div class="empty-icon">🎉</div><p>Nėra flagged laiškų!</p></div>';
+    }
+  }
+
+  function buildMailCard(m) {
+    const card = document.createElement('div');
+    card.className = `mail-item ${m._category}`;
+
+    const subject = m.subject || '(be temos)';
+    const from    = m.from?.emailAddress?.name || m.from?.emailAddress?.address || '?';
+    const badge   = formatDueBadge(m._dueDate, m._category);
+
+    card.innerHTML = `
+      <div class="mail-row1">
+        <span class="mail-flag">🚩</span>
+        <span class="mail-subject" title="${escHtml(subject)}">${escHtml(subject)}</span>
+      </div>
+      <div class="mail-row2">
+        <span class="mail-from">${escHtml(from)}</span>
+        <span class="due-badge ${m._category}">${badge}</span>
+      </div>
+    `;
+
+    card.addEventListener('click', () => {
+      if (m.webLink) {
+        window.open(m.webLink, '_blank');
+      }
+    });
+
+    return card;
+  }
+
+  function formatDueBadge(date, cat) {
+    if (!date) return 'Be datos';
+    if (cat === 'today') return 'Šiandien';
+    if (cat === 'overdue') {
+      const days = Math.round((new Date().setHours(0,0,0,0) - date) / 86400000);
+      return `${days}d. vėlu`;
+    }
+    const days = Math.round((date - new Date().setHours(0,0,0,0)) / 86400000);
+    return days === 1 ? 'Rytoj' : `Po ${days}d.`;
+  }
+
+  // ─── Helpers ──────────────────────────────────────────────────────────────
+  function show(id) {
+    document.getElementById('loading-content').style.display = 'none';
+    document.getElementById('auth-content').style.display   = 'none';
+    document.getElementById('main-content').style.display   = 'none';
+    document.getElementById(id).style.display = '';
+  }
+
+  function showError(msg) {
+    const b = document.getElementById('errorBox');
+    b.textContent = msg;
+    b.style.display = 'block';
+  }
+
+  function hideError() {
+    document.getElementById('errorBox').style.display = 'none';
+  }
+
+  function escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+</script>
+</body>
+</html>

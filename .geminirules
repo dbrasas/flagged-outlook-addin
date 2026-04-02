@@ -1,0 +1,5 @@
+# Antigravity / Gemini AI Rules
+
+1. **Changelog Updates:** Whenever modifying project source code, you MUST document the changes in `CHANGELOG.md` following [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) formats.
+2. **README Checks:** Whenever modifying configuration, installation instructions, or adding new features, you MUST verify if `README.md` requires updates and implement them.
+3. **No Breaking Auth Changes without Approval:** Authentication or critical security configurations must not be fundamentally altered without user review.
