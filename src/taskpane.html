@@ -440,7 +440,8 @@
         throw new Error("Nėra prisijungto vartotojo");
       }
     } catch(e) {
-      showError('Nepavyko atnaujinti: ' + e.message);
+      showError('Nepavyko atnaujinti: ' + e.message + ' (Gali reikėti prisijungti iš naujo)');
+      show('auth-content');
     }
     btn.classList.remove('spinning');
   }
@@ -490,7 +491,11 @@
       show('main-content');
     } catch (err) {
       showError('Klaida kraunant laiškus: ' + err.message);
-      show('main-content');
+      if (err.message.includes("401") || err.message.includes("auth")) {
+        show('auth-content');
+      } else {
+        show('main-content');
+      }
     }
   }
 

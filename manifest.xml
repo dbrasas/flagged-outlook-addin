@@ -7,11 +7,14 @@
 
   <!-- Sugeneruotas unikalus ID šiems priedui -->
   <Id>b7a2e841-f925-4c31-9232-a5e84f228492</Id>
-  <Version>1.0.0.1</Version>
+  <Version>1.0.0.2</Version>
   <ProviderName>D. Brasas</ProviderName>
   <DefaultLocale>lt-LT</DefaultLocale>
   <DisplayName DefaultValue="Flagged by Due Date"/>
   <Description DefaultValue="Rodo flagged laiškus surūšiuotus pagal terminą"/>
+  <IconUrl DefaultValue="https://dbrasas.github.io/flagged-outlook-addin/assets/icon-64.png"/>
+  <HighResolutionIconUrl DefaultValue="https://dbrasas.github.io/flagged-outlook-addin/assets/icon-128.png"/>
+  <SupportUrl DefaultValue="https://dbrasas.github.io/flagged-outlook-addin"/>
 
   <Hosts>
     <Host Name="Mailbox"/>
