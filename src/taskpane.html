@@ -366,7 +366,7 @@
 <script src="https://alcdn.msauth.net/browser/2.37.0/js/msal-browser.min.js"></script>
 <script>
   // ─── Config ───────────────────────────────────────────────────────────────
-  const CLIENT_ID = 'YOUR_CLIENT_ID_HERE'; // <-- pakeisk savo Azure App ID
+  const CLIENT_ID = '0a9a0fa6-5881-4c7b-b96e-8a4b047ecc09'; // <-- pakeisk savo Azure App ID
   const SCOPES   = ['Mail.Read'];
 
   let accessToken = null;
@@ -374,7 +374,7 @@
 
   // ─── Office init ──────────────────────────────────────────────────────────
   Office.onReady(async () => {
-    if (CLIENT_ID === 'YOUR_CLIENT_ID_HERE') {
+    if (CLIENT_ID === '0a9a0fa6-5881-4c7b-b96e-8a4b047ecc09') {
       const authDiv = document.getElementById('auth-content');
       authDiv.innerHTML = '<p style="color:var(--accent2); font-size:14px; font-weight:600;">⚠️ Setup Required</p><p>Please enter your Azure Client ID in <code>src/taskpane.html</code></p>';
       show('auth-content');
