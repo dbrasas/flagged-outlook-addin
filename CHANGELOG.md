@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.3] - 2026-04-03
+
+### Changed
+- Prepared add-in for production GitHub Pages deployment. Updated `manifest.xml` source locations (`SourceLocation`, `IconUrl`, `HighResolutionIconUrl`, `AppDomains`) to point to the live `dbrasas.github.io` URL instead of `localhost`.
+- Replaced obsolete `.svg` placeholders with high-quality PNG icons (16x16, 32x32, 64x64, 80x80, 128x128) configured specifically for Office Add-in manifest validation.
+- Cleaned up unneeded log outputs and temporary files (e.g., `validation.log`).
+
 ## [1.0.2] - 2026-04-02
 
 ### Fixed
