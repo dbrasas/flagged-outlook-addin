@@ -16,14 +16,14 @@
   <HighResolutionIconUrl DefaultValue="https://dbrasas.github.io/flagged-outlook-addin/assets/icon-128.png"/>
   <SupportUrl DefaultValue="https://dbrasas.github.io/flagged-outlook-addin"/>
 
-  <Hosts>
-    <Host Name="Mailbox"/>
-  </Hosts>
-
   <AppDomains>
     <AppDomain>https://login.microsoftonline.com</AppDomain>
     <AppDomain>https://dbrasas.github.io</AppDomain>
   </AppDomains>
+
+  <Hosts>
+    <Host Name="Mailbox"/>
+  </Hosts>
 
   <Requirements>
     <Sets>

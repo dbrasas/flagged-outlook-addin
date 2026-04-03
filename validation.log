@@ -1,0 +1,73 @@
+Validation Information: 
+Manifest ID Valid Prefix: The product ID in the manifest has a valid prefix
+  - Details: b7a2e841-f925-4c31-9232-a5e84f228492
+
+Manifest ID Correct Structure: The structure of the product ID is correct.
+  - Details: b7a2e841-f925-4c31-9232-a5e84f228492
+
+Package Type Identified: Package of your add-in was parsed successfully.
+
+Correct Package: Your package matches the submission type.
+
+Valid Manifest Schema: Your manifest does adhere to the current set of XML schema definitions for Add-in manifests.
+
+Manifest Version Correct Structure: The manifest version number has the correct structure for the platform that it supports.
+
+Manifest Version Correct Value: The manifest version number is greater or equal to 1.0.
+
+Desktop Source Location Present: A desktop or default source location URL is found.
+
+Secure Desktop Source Location: The manifest desktop source location URLs use HTTPS.
+
+The manifest source location URLs are valid.: The manifest source location URLs are valid.
+
+Supported Office Identified: Supported Office products were successfully determined.
+
+Support URL Present: The manifest support URL is present.
+  - Details: https://dbrasas.github.io/flagged-outlook-addin
+
+Valid Support URL structure: The manifest support URL has valid structure.
+
+Valid OnlineMeetingCommandSurface ExtensionPoint.: OnlineMeetingCommandSurface ExtensionPoint extracted from manifest is found to be valid.
+
+Minimum Api requirement constraint for VersionOverrides is valid: Minimum Api requirement constraint for VersionOverrides is valid
+
+Mailbox add-in not containing ItemSend event is valid.: Mailbox add-in not containing ItemSend event is valid.
+
+High Resolution Icon Present: A high resolution icon element was expected and is present.
+  - Details: https://dbrasas.github.io/flagged-outlook-addin/assets/icon-128.png
+
+Supported High Resolution Icon URL File Extension: The manifest high resolution icon URL has a valid image file extension.
+  - Details: png
+
+Secure High Resolution Icon URL: The manifest high resolution icon URL uses HTTPS.
+  - Details: https://dbrasas.github.io/flagged-outlook-addin/assets/icon-128.png
+
+Icon Present: A icon element was expected and is present.
+  - Details: https://dbrasas.github.io/flagged-outlook-addin/assets/icon-64.png
+
+Supported Icon URL File Extension: The manifest icon URL has a valid image file extension.
+  - Details: png
+
+The manifest icon URL uses HTTPS.: Secure Icon URL
+  - Details: https://dbrasas.github.io/flagged-outlook-addin/assets/icon-64.png
+
+Acceptance Test Completed: Acceptance test service has finished checking provided add-in.
+
+
+Based on the requirements specified in your manifest, your add-in can run on the following platforms; your add-in will be tested on these platforms when you submit it to the Office Store:
+  - Outlook 2013 or later on Windows
+  - Outlook 2016 or later on Windows
+  - Outlook 2019 or later on Windows
+  - Outlook 2013 or later on Mac
+  - Outlook 2016 or later on Mac
+  - Outlook 2019 or later on Mac
+  - Outlook on the web
+  - Outlook on Windows (Microsoft 365)
+  - Outlook on Mac (Microsoft 365)
+Important: This analysis is based on the requirements specified in your manifest and does not account for any runtime JavaScript calls within your add-in. For information about which API sets and features are supported on each platform, see Office Add-in host and platform availability. (https://docs.microsoft.com/office/dev/add-ins/overview/office-add-in-availability).
+
+*This does not include mobile apps. You can opt-in to support mobile apps when you submit your add-in.
+
+The manifest is valid.
+
