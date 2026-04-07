@@ -1,140 +1,209 @@
-# 🚩 Flagged by Due Date — Outlook Add-in
+# Flagged by Due Date
 
-Rodo visus flagged laiškus iš **visų aplankų**, surūšiuotus pagal Due Date (ankščiausias viršuje), suskirstytus į kategorijas: **Vėluoja · Šiandien · Artimiausi · Be termino**.
+Outlook add-in that helps a user triage flagged email across the entire mailbox by grouping messages into `Overdue`, `Today`, `Upcoming`, and `No due date`.
 
----
+## Why this add-in exists
 
-## ✅ Reikalavimai
+The business purpose is narrow and practical: Outlook already lets a user flag messages, but it does not provide a focused side panel that lists all flagged mail from all folders sorted by flag due date. This add-in exists to reduce missed follow-ups and make due-date-based email review faster than manually hunting through folders or using generic Outlook views.
 
-- Windows 10/11 su naujuoju Outlook
-- Node.js 18+ (https://nodejs.org)
-- Microsoft 365 paskyra (darbo arba asmeninė)
+That purpose drives the current design:
 
----
+- Read-only Outlook add-in command in message read mode.
+- Microsoft Graph is used only to read flagged messages for the signed-in user.
+- The add-in stays lightweight and client-side because it only needs mailbox read access and simple sorting/grouping.
 
-## 1️⃣ Azure App registracija (VIENAS KARTAS)
+## Current architecture
 
-Add-in naudoja Microsoft Graph API skaityti laiškams — tam reikia Azure App ID.
+- `manifest.xml`
+  Production Outlook add-in manifest for the GitHub Pages deployment.
+- `manifest.local.xml`
+  Local-development manifest that points Outlook to `https://localhost:3000`.
+- `server.js`
+  Minimal HTTPS dev server with a strict file allowlist and baseline security headers.
+- `src/taskpane.html`
+  Task pane shell that applies Starting Point UI component classes.
+- `src/taskpane.css`
+  Tailwind CSS v4 source file. Imports `tailwindcss` and `starting-point-ui`, defines theme tokens, and contains the app-specific component styling.
+- `src/taskpane.generated.css`
+  Compiled stylesheet served by the add-in at runtime.
+- `src/taskpane.js`
+  MSAL auth flow, Microsoft Graph access, grouping/sorting logic, and DOM rendering.
 
-1. Eik į https://portal.azure.com → **Azure Active Directory** → **App registrations** → **New registration**
-2. Pavadinimas: `FlaggedSorterAddin`
-3. Supported account types: **Accounts in any organizational directory and personal Microsoft accounts**
-4. Redirect URI: `https://dbrasas.github.io/flagged-outlook-addin/src/taskpane.html` (tipas: **Single-page application**)
-5. Spusk **Register**
-6. Nukopijuok **Application (client) ID**
-7. Eik į **API permissions** → **Add a permission** → **Microsoft Graph** → **Delegated** → pridėk:
-   - `Mail.Read`
-8. Spusk **Grant admin consent** (arba paprašyk IT admino)
+## Design system integration
 
-### Tada įdėk savo Client ID į kodą:
+The task pane now uses [Starting Point UI](https://www.startingpointui.com/) on top of Tailwind CSS v4. In this repository that requires a small build step because the add-in is a plain static HTML/CSS/JS app, not a React or Next.js project.
 
-Atsidaryk `src/taskpane.html`, rask šią eilutę (~367):
-```javascript
-const CLIENT_ID = 'YOUR_CLIENT_ID_HERE';
-```
-Pakeisk `YOUR_CLIENT_ID_HERE` į savo **Application (client) ID**.
+Installed build-time packages:
 
----
+- `tailwindcss`
+- `@tailwindcss/cli`
+- `starting-point-ui`
 
-### ✅ SVARBU: Saugumas
-**Sertifikatai niekada neturi būti keliami į Git (GitHub)!**  
-Projektas automatiškai ignoruoja `certs/` aplanką per `.gitignore`. Jei netyčia įkeltumėte raktus, juos būtina nedelsiant pergeneruoti.
+Key implementation detail:
 
----
+- `src/taskpane.css` is the source stylesheet.
+- `npm run build:styles` compiles it into `src/taskpane.generated.css`.
+- `src/taskpane.html` loads the generated file, not the source file.
+- `npm run dev` and `npm start` now rebuild the generated stylesheet before starting the HTTPS server.
 
-## 2️⃣ SSL sertifikatai (lokaliam serveriui)
+## Authentication model
 
-Outlook reikalauja HTTPS net dirbant lokaliai. Naudosime oficialius Microsoft dev sertifikatus:
+The current implementation uses popup-based MSAL SPA authentication against Microsoft Entra ID and then calls Microsoft Graph directly from the task pane.
+
+Important notes:
+
+- The Azure Application (client) ID is a public identifier, not a secret.
+- No client secret should ever be added to this project.
+- Access tokens are now cached in `sessionStorage` instead of `localStorage` to reduce persistence risk on shared devices.
+- Current code keeps the existing `Mail.Read` scope to avoid an unreviewed breaking auth change for the already-registered Azure app.
+- Current Microsoft guidance recommends Nested App Authentication (NAA) for supported Outlook hosts. That migration is documented in [docs/AUDIT.md](docs/AUDIT.md) as a recommended follow-up, not an in-place auth rewrite.
+
+## Azure app registration
+
+Configure the existing Azure app registration with:
+
+1. Supported account types:
+   `Accounts in any organizational directory and personal Microsoft accounts`
+2. SPA redirect URIs for the current popup flow:
+   `https://localhost:3000/src/taskpane.html`
+   `https://dbrasas.github.io/flagged-outlook-addin/src/taskpane.html`
+3. Microsoft Graph delegated permissions:
+   `Mail.Read`
+
+Notes:
+
+- `Mail.Read` is what the current implementation requests today.
+- A later least-privilege review should evaluate moving to `Mail.ReadBasic` if tenant consent and required message fields are confirmed for this exact scenario.
+- If you change the Azure client ID, update `CLIENT_ID` in [src/taskpane.js](src/taskpane.js).
+
+## Local development
+
+Prerequisites:
+
+- Windows 10/11 with new Outlook or Outlook on the web.
+- Node.js 18+.
+- Microsoft 365 account.
+
+### 1. Install dev certificates
 
 ```bash
-# Sugeneruok ir patikimuose įdiek sertifikatus
-npx office-addin-dev-certs install
-
-# Sukurk aplanką sertifikatams (jis nebus keliamas į Git)
+npm run certs:install
 mkdir certs
-
-# Nukopijuok iš sistemos į projektą (Windows pavyzdys):
 copy "%USERPROFILE%\.office-addin-dev-certs\localhost.key" certs\server.key
 copy "%USERPROFILE%\.office-addin-dev-certs\localhost.crt" certs\server.crt
 ```
 
----
-
-## 3️⃣ Paleisk serverį
+### 2. Install packages and build styles
 
 ```bash
-# Projekto aplanke:
 npm install
-node server.js
+npm run build:styles
 ```
 
-Turėtum matyti:
+If you are actively editing Tailwind utilities or Starting Point UI markup, run a watcher in a second terminal:
+
+```bash
+npm run watch:styles
 ```
+
+### 3. Start the local HTTPS server
+
+```bash
+npm run dev
+```
+
+Expected output:
+
+```text
 ✅ Add-in serveris veikia: https://localhost:3000
-📋 Manifest: https://dbrasas.github.io/flagged-outlook-addin/manifest.xml
+📋 Local manifest: https://localhost:3000/manifest.local.xml
+🔧 Taskpane: https://localhost:3000/src/taskpane.html
 ```
 
-Patikrink naršyklėje: https://dbrasas.github.io/flagged-outlook-addin/src/taskpane.html — turi atsidaryti UI.
+### 4. Sideload the local manifest
 
----
+Use `manifest.local.xml` for local work.
 
-## 4️⃣ Įdiek Add-in į Outlook
+- Outlook Web / new Outlook:
+  Open `https://aka.ms/olksideload`
+- Choose `Add a custom add-in`
+- Upload `manifest.local.xml`
 
-### Greičiausias būdas (Outlook Web / New Outlook):
-1. Naršyklėje atsidaryk: [https://aka.ms/olksideload](https://aka.ms/olksideload) (arba [https://outlook.office.com/mail/addins](https://outlook.office.com/mail/addins))
-2. Pasirink **My add-ins** skirtuką.
-3. Apačioje spusk **+ Add a custom add-in** → **Add from File...**
-4. Pasirink `manifest.xml` failą.
+## Production deployment
 
-### Naujasis Outlook (Windows Rankiniu būdu):
-1. Spusk ⚙️ → **View all Outlook settings** → **Mail** → **Customize actions** → **Add-ins**
-2. **My add-ins** → **Add a custom add-in** → **Add from URL**
-3. Įvesk: `https://dbrasas.github.io/flagged-outlook-addin/manifest.xml`
+The production manifest currently points to GitHub Pages:
 
----
+- Task pane: `https://dbrasas.github.io/flagged-outlook-addin/src/taskpane.html`
+- Manifest: `https://dbrasas.github.io/flagged-outlook-addin/manifest.xml`
 
-## 5️⃣ Naudojimas
+Production guidance:
 
-1. Atidaryk bet kurį laišką Outlook
-2. Toolbar viršuje pamatyk mygtuką **📋 Flagged by Date**
-3. Spusk — dešinėje atsidaro panel su visais flagged laiškais
-4. Laiškus skirsto automatiškai: 🔴 Vėluoja → 🟡 Šiandien → 🟢 Artimiausi → ⬜ Be termino
-5. Spusk ant laiško — jis atsidaro naršyklėje (Outlook on the web)
+- Keep the hosting endpoint HTTPS-only.
+- Treat GitHub Pages as acceptable for a small static add-in, but move to a host that supports managed response headers if stricter production CSP/HSTS policy control is required.
+- Validate the manifest before release.
+- Keep Azure redirect URIs aligned with the exact deployed task pane URL.
 
----
+## Security and operations
 
-## ❓ Dažnos klaidos
+Already implemented in the repository:
 
-| Klaida | Sprendimas |
-|--------|-----------|
-| SSL klaida naršyklėje | Paleisk `npx office-addin-dev-certs install` iš naujo |
-| "Nepavyko prisijungti" | Patikrink CLIENT_ID ir Graph permissions |
-| Add-in neatsiranda | Iš naujo paleisk Outlook po manifest instaliavimo |
-| "Graph klaida: 403" | Azure App neturi `Mail.Read` leidimo arba trūksta admin consent |
+- `certs/` and certificate files are ignored by Git.
+- The local dev server serves only an allowlisted set of files.
+- The add-in manifest permission is limited to `ReadItem`.
+- Task pane scripting is now externalized so the page can use a stricter CSP.
+- Graph calls now honor timeouts and retry throttling-related responses.
 
----
+Operational rules:
 
-## 📁 Projekto struktūra
+- Never commit private keys, `.env` files, or bearer tokens.
+- Never add a client secret to a browser-based Outlook add-in.
+- Keep permissions least-privileged and review them before widening scope.
+- Prefer production monitoring that avoids logging mailbox content or message subjects unless explicitly justified and approved.
 
+## Validation Helpers
+
+```bash
+npm run build:styles
+npm run validate:manifest
+npm run validate:manifest:local
 ```
-flagged-addin/
-├── manifest.xml          ← Outlook add-in aprašas
-├── server.js             ← Lokalus HTTPS serveris
+
+These scripts use `npx office-addin-manifest validate ...` as recommended by current Microsoft documentation.
+
+Quick UI verification:
+
+- Confirm `src/taskpane.generated.css` exists after the build step.
+- Open `https://localhost:3000/src/taskpane.html` and verify the page loads with the new card-based dark theme.
+- Check that the buttons, badges, separators, and cards render with Starting Point UI styling.
+- Sign in and verify flagged messages render as styled cards grouped by `Vėluoja`, `Šiandien`, `Artimiausi`, and `Be termino`.
+
+## Project structure
+
+```text
+.
+├── assets/
+├── certs/
+├── docs/
+│   └── AUDIT.md
+├── manifest.local.xml
+├── manifest.xml
 ├── package.json
-├── certs/                ← SSL sertifikatai (**IGNORUOJAMA GIT**)
-│   ├── server.key        ← Jūsų privatus raktas
-│   └── server.crt
-├── .gitignore            ← Apsaugo jautrius duomenis
+├── package-lock.json
+├── server.js
 └── src/
-    └── taskpane.html     ← Visas UI + logika
+    ├── taskpane.css
+    ├── taskpane.generated.css
+    ├── taskpane.html
+    └── taskpane.js
 ```
 
----
+## Audit and source-backed recommendations
 
-## 🚀 Gamybinė versija (cloud hosting)
+See [docs/AUDIT.md](docs/AUDIT.md) for:
 
-Jei nori naudoti be lokalaus serverio, galima hostinti nemokamais servisais:
-- **GitHub Pages** (tik statiniam HTML)
-- **Vercel** / **Netlify** — nemokamas HTTPS
-
-Tada manifest.xml URL pakeisk į savo cloud adresą.
+- business-purpose summary
+- architecture audit
+- prioritized risks
+- security checklist
+- current-doc-validated recommendations
+- deferred items that need Azure or hosting decisions

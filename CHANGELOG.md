@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.5] - 2026-04-07
+
+### Changed
+
+- Split the monolithic `src/taskpane.html` into `src/taskpane.html`, `src/taskpane.css`, and `src/taskpane.js` without changing the existing UI design.
+- Reworked the task pane UI to use Starting Point UI component classes on top of a Tailwind CSS v4 build pipeline while keeping the Outlook/MSAL/Graph behavior intact.
+- Added Tailwind build scripts and a generated runtime stylesheet (`src/taskpane.generated.css`) so the design system works in this plain static add-in.
+- Updated the task pane layout into a card-based dashboard with styled auth, loading, stats, and flagged-message states.
+- Reworked the task pane to use external scripts and styles so a stricter CSP can be applied without relying on inline handlers.
+- Switched MSAL browser cache persistence from `localStorage` to `sessionStorage` to reduce unnecessary token persistence.
+- Added timeout handling and throttling-aware retry logic for Microsoft Graph requests.
+- Added `manifest.local.xml` so local development uses a real localhost manifest instead of the production GitHub Pages manifest.
+- Updated `server.js` to support the new static files, enforce `GET` and `HEAD` only, and return baseline security headers.
+- Added manifest validation helper scripts to `package.json`.
+- Rewrote `README.md` around the actual business purpose, deployment model, and security assumptions.
+- Added `docs/AUDIT.md` with a source-backed architecture and security audit, implementation status labels, and deferred recommendations.
+
 ## [1.0.4] - 2026-04-07
 
 ### Security

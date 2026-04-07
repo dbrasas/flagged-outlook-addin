@@ -1,14 +1,24 @@
 {
   "name": "flagged-by-duedate-addin",
-  "version": "1.0.0",
+  "version": "1.0.5",
   "description": "Outlook add-in: rodo flagged laiškus surūšiuotus pagal Due Date",
   "scripts": {
+    "build:styles": "npx @tailwindcss/cli -i ./src/taskpane.css -o ./src/taskpane.generated.css --minify",
+    "watch:styles": "npx @tailwindcss/cli -i ./src/taskpane.css -o ./src/taskpane.generated.css --watch",
+    "prestart": "npm run build:styles",
+    "predev": "npm run build:styles",
     "start": "node server.js",
-    "dev": "node server.js"
+    "dev": "node server.js",
+    "certs:install": "npx office-addin-dev-certs install",
+    "validate:manifest": "npx office-addin-manifest validate manifest.xml",
+    "validate:manifest:local": "npx office-addin-manifest validate manifest.local.xml"
   },
   "engines": {
     "node": ">=18.0.0"
   },
-  "dependencies": {},
-  "devDependencies": {}
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.2.2",
+    "starting-point-ui": "^0.14.0",
+    "tailwindcss": "^4.2.2"
+  }
 }
