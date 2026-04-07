@@ -1,0 +1,22 @@
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Node modules
+node_modules/
+
+# Certificates (contains private keys)
+certs/
+*.key
+*.pem
+*.crt
+*.pfx
+
+# Environment variables
+.env
+.env.*
+
+# Build output
+dist/
+build/
