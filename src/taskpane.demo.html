@@ -6,9 +6,9 @@
   <meta name="referrer" content="no-referrer"/>
   <meta
     http-equiv="Content-Security-Policy"
-    content="default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'self' https://appsforoffice.microsoft.com https://alcdn.msauth.net; style-src 'self'; img-src 'self' data:; connect-src 'self' https://graph.microsoft.com https://login.microsoftonline.com; frame-src https://login.microsoftonline.com; form-action 'none'; upgrade-insecure-requests"
+    content="default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'; frame-src 'none'; form-action 'none'; upgrade-insecure-requests"
   />
-  <title>Flagged by Due Date</title>
+  <title>Flagged by Due Date Demo</title>
   <link rel="stylesheet" href="./taskpane.generated.css"/>
 </head>
 <body>
@@ -25,10 +25,10 @@
           </div>
           <div class="min-w-0">
             <p class="text-[0.65rem] font-semibold uppercase tracking-[0.28em] text-muted-foreground">
-              Flag triage
+              Demo mode
             </p>
             <h1 class="text-sm font-semibold tracking-tight">Flagged by Due Date</h1>
-            <p class="text-xs text-muted-foreground">Surūšiuoti pagal terminą</p>
+            <p class="text-xs text-muted-foreground">Peržiūra su pavyzdiniais laiškais</p>
           </div>
         </div>
         <button class="btn btn-outline btn-sm refresh-btn" id="refreshBtn" type="button">
@@ -41,70 +41,18 @@
               stroke-linejoin="round"
             />
           </svg>
-          <span>Atnaujinti</span>
+          <span>Perkrauti demo</span>
         </button>
       </div>
     </header>
 
     <main class="flex flex-1 flex-col gap-4 px-4 py-4">
-      <div class="status-banner" id="errorBox" role="alert"></div>
+      <div class="status-banner block" id="errorBox" role="status">
+        Demo režimas: čia rodomi pavyzdiniai duomenys, kad galėtumėte įvertinti išdėstymą,
+        spalvas ir kortelių tankį ne Outlook aplinkoje.
+      </div>
 
-      <section id="loading-content" class="loading-shell">
-        <div class="card state-card border-border/80 bg-card/85 shadow-xl shadow-black/20">
-          <div class="card-content state-card-content">
-            <div class="loading-spinner"></div>
-            <div class="state-card-body">
-              <h2 class="text-sm font-semibold tracking-tight">Jungiamasi prie Outlook</h2>
-              <p class="text-sm leading-6 text-muted-foreground">
-                Tikrinama sesija ir ruošiamas flagged laiškų sąrašas.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section id="auth-content" class="auth-shell">
-        <div class="card state-card border-border/80 bg-card/88 shadow-xl shadow-black/20">
-          <div class="card-content state-card-content state-card-content-auth">
-            <div class="auth-icon state-card-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" class="size-5">
-                <path
-                  d="M7 11V8a5 5 0 0 1 10 0v3M6 11h12v8H6z"
-                  stroke="currentColor"
-                  stroke-width="1.8"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                />
-              </svg>
-            </div>
-            <div class="state-card-body state-card-body-wide">
-              <p class="text-xs font-medium uppercase tracking-[0.24em] text-muted-foreground">
-                Microsoft Graph
-              </p>
-              <h2 class="text-lg font-semibold tracking-tight">
-                Prisijunkite, kad matytumėte flagged laiškus
-              </h2>
-              <p class="text-sm leading-6 text-muted-foreground">
-                Add-in naudoja jūsų Outlook paskyrą, kad nuskaitytų flagged laiškus iš visų
-                aplankų ir surikiuotų juos pagal due date.
-              </p>
-            </div>
-            <div class="separator w-full" role="separator"></div>
-            <div class="state-card-footer">
-              <button class="btn w-full justify-center" id="authBtn" type="button">
-                Prisijungti prie Microsoft
-              </button>
-              <p class="text-xs leading-5 text-muted-foreground">
-                Reikalinga deleguota
-                <span class="font-medium text-foreground">Mail.Read</span>
-                teisė ir teisingai sukonfigūruotas Azure redirect URI.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section id="main-content" class="space-y-4">
+      <section id="main-content" class="space-y-4 block">
         <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <article class="card stat-card stat-overdue">
             <div class="card-content p-4">
@@ -165,8 +113,6 @@
   </div>
 </div>
 
-<script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
-<script src="https://alcdn.msauth.net/browser/2.37.0/js/msal-browser.min.js"></script>
-<script src="./taskpane.js"></script>
+<script src="./taskpane.demo.js"></script>
 </body>
 </html>

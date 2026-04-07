@@ -21,6 +21,8 @@ const CONTENT_SECURITY_POLICY = [
 const ALLOWED_FILES = new Set([
   "/manifest.xml",
   "/manifest.local.xml",
+  "/src/taskpane.demo.html",
+  "/src/taskpane.demo.js",
   "/src/taskpane.html",
   "/src/taskpane.css",
   "/src/taskpane.generated.css",
