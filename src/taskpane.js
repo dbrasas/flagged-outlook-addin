@@ -3,11 +3,14 @@
 const CLIENT_ID = "0a9a0fa6-5881-4c7b-b96e-8a4b047ecc09";
 const SCOPES = Object.freeze(["Mail.Read"]);
 const GRAPH_BASE_URL = "https://graph.microsoft.com/v1.0";
+const GRAPH_MESSAGE_FIELDS = "id,subject,from,flag,receivedDateTime,webLink";
 const GRAPH_PAGE_SIZE = 100;
 const GRAPH_MAX_MESSAGES = 500;
+const GRAPH_MAX_SCANNED_MESSAGES = 2000;
 const GRAPH_TIMEOUT_MS = 15000;
 const GRAPH_MAX_RETRIES = 3;
 const RETRYABLE_STATUSES = new Set([429, 503, 504]);
+const AUTH_POPUP_TIMEOUT_MS = 30000;
 const RECEIVED_DATE_FORMATTER = new Intl.DateTimeFormat("lt-LT", {
   day: "numeric",
   month: "short",
@@ -156,18 +159,31 @@ async function acquireAccessToken(options = {}) {
 }
 
 async function doAuth() {
-  if (isInteracting || !msalInstance) {
+  if (isInteracting) {
+    return;
+  }
+
+  if (!msalInstance) {
+    showError(
+      "Prisijungimas neinicijuotas. Atnaujinkite panelę. Jei nepadeda, uždarykite ir atidarykite add-in iš naujo."
+    );
+    show("auth-content");
     return;
   }
 
   isInteracting = true;
+  ui.authBtn.disabled = true;
   show("loading-content");
 
   try {
-    const response = await msalInstance.loginPopup({
-      scopes: SCOPES,
-      loginHint: getOutlookEmail() || undefined,
-    });
+    const response = await withTimeout(
+      msalInstance.loginPopup({
+        scopes: SCOPES,
+        loginHint: getOutlookEmail() || undefined,
+      }),
+      AUTH_POPUP_TIMEOUT_MS,
+      new Error("Prisijungimo langas neatsidarė arba buvo užblokuotas Outlook lange.")
+    );
 
     if (response.account) {
       msalInstance.setActiveAccount(response.account);
@@ -178,12 +194,17 @@ async function doAuth() {
   } catch (error) {
     if (error?.errorCode === "interaction_in_progress") {
       showError("Prisijungimas jau vyksta. Jei nematote naujo lango, atnaujinkite panelę.");
+    } else if (isPopupAuthError(error)) {
+      showError(
+        "Outlook neparodė Microsoft prisijungimo lango. Atnaujinkite add-in, leiskite iššokančius langus arba atidarykite panelę iš naujo."
+      );
     } else {
       showError("Nepavyko prisijungti: " + formatError(error));
     }
     show("auth-content");
   } finally {
     isInteracting = false;
+    ui.authBtn.disabled = false;
   }
 }
 
@@ -323,25 +344,8 @@ async function loadFlaggedMails() {
   showMailboxMismatchWarning();
 
   try {
-    const messages = [];
-    let url =
-      "/me/messages?$filter=flag/flagStatus eq 'flagged'" +
-      "&$select=id,subject,from,flag,receivedDateTime,webLink" +
-      "&$top=" + GRAPH_PAGE_SIZE +
-      "&$orderby=receivedDateTime desc";
-
-    while (url && messages.length < GRAPH_MAX_MESSAGES) {
-      const data = await graphGet(url);
-
-      if (data?.error?.message) {
-        throw new Error(data.error.message);
-      }
-
-      messages.push(...(data.value || []));
-      url = data["@odata.nextLink"] || null;
-    }
-
-    renderMails(messages.slice(0, GRAPH_MAX_MESSAGES));
+    const messages = await fetchFlaggedMessages();
+    renderMails(messages);
     show("main-content");
   } catch (error) {
     const message = formatError(error);
@@ -353,6 +357,106 @@ async function loadFlaggedMails() {
       show("main-content");
     }
   }
+}
+
+async function fetchFlaggedMessages() {
+  try {
+    return await fetchFlaggedMessagesServerSide();
+  } catch (error) {
+    if (!isComplexQueryError(error)) {
+      throw error;
+    }
+
+    console.warn("Server-side flagged query was rejected. Falling back to client-side filtering.", error);
+    return fetchFlaggedMessagesClientSide();
+  }
+}
+
+async function fetchFlaggedMessagesServerSide() {
+  const messages = [];
+  let url = buildMessagesUrl({ filterFlagged: true });
+
+  while (url && messages.length < GRAPH_MAX_MESSAGES) {
+    const data = await graphGet(url);
+
+    if (data?.error?.message) {
+      throw new Error(data.error.message);
+    }
+
+    messages.push(...filterFlaggedMessages(data.value || []));
+    url = data["@odata.nextLink"] || null;
+  }
+
+  return messages.slice(0, GRAPH_MAX_MESSAGES);
+}
+
+async function fetchFlaggedMessagesClientSide() {
+  const messages = [];
+  let scannedMessages = 0;
+  let url = buildMessagesUrl({ orderByReceivedDesc: true });
+
+  while (
+    url &&
+    messages.length < GRAPH_MAX_MESSAGES &&
+    scannedMessages < GRAPH_MAX_SCANNED_MESSAGES
+  ) {
+    const data = await graphGet(url);
+
+    if (data?.error?.message) {
+      throw new Error(data.error.message);
+    }
+
+    const page = data.value || [];
+    scannedMessages += page.length;
+    messages.push(...filterFlaggedMessages(page));
+    url =
+      scannedMessages >= GRAPH_MAX_SCANNED_MESSAGES
+        ? null
+        : data["@odata.nextLink"] || null;
+  }
+
+  return messages.slice(0, GRAPH_MAX_MESSAGES);
+}
+
+function buildMessagesUrl(options = {}) {
+  const params = new URLSearchParams();
+
+  if (options.filterFlagged) {
+    params.set("$filter", "flag/flagStatus eq 'flagged'");
+  }
+
+  params.set("$select", GRAPH_MESSAGE_FIELDS);
+  params.set("$top", String(GRAPH_PAGE_SIZE));
+
+  if (options.orderByReceivedDesc) {
+    params.set("$orderby", "receivedDateTime desc");
+  }
+
+  return "/me/messages?" + params.toString();
+}
+
+function filterFlaggedMessages(messages) {
+  return messages.filter((message) => {
+    const flagStatus = message.flag?.flagStatus;
+    return flagStatus === "flagged" || Boolean(message.flag?.dueDateTime?.dateTime);
+  });
+}
+
+function isComplexQueryError(error) {
+  return formatError(error).toLowerCase().includes("too complex");
+}
+
+function isPopupAuthError(error) {
+  const message = formatError(error).toLowerCase();
+  const errorCode = String(error?.errorCode || "").toLowerCase();
+
+  return (
+    message.includes("užblokuotas") ||
+    message.includes("popup") ||
+    errorCode.includes("popup") ||
+    errorCode === "monitor_window_timeout" ||
+    errorCode === "empty_window_error"
+  );
 }
 
 function showMailboxMismatchWarning() {
@@ -670,4 +774,18 @@ function formatError(error) {
 
 function delay(ms) {
   return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
+function withTimeout(promise, timeoutMs, timeoutError) {
+  let timeoutId = null;
+
+  const timeoutPromise = new Promise((_, reject) => {
+    timeoutId = window.setTimeout(() => reject(timeoutError), timeoutMs);
+  });
+
+  return Promise.race([promise, timeoutPromise]).finally(() => {
+    if (timeoutId !== null) {
+      window.clearTimeout(timeoutId);
+    }
+  });
 }
