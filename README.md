@@ -36,20 +36,24 @@ Pakeisk `YOUR_CLIENT_ID_HERE` į savo **Application (client) ID**.
 
 ---
 
+### ✅ SVARBU: Saugumas
+**Sertifikatai niekada neturi būti keliami į Git (GitHub)!**  
+Projektas automatiškai ignoruoja `certs/` aplanką per `.gitignore`. Jei netyčia įkeltumėte raktus, juos būtina nedelsiant pergeneruoti.
+
+---
+
 ## 2️⃣ SSL sertifikatai (lokaliam serveriui)
 
-Outlook reikalauja HTTPS. Naudosim oficialius Microsoft dev sertifikatus:
+Outlook reikalauja HTTPS net dirbant lokaliai. Naudosime oficialius Microsoft dev sertifikatus:
 
 ```bash
-# Instaliuok įrankį
-npm install -g office-addin-dev-certs
-
 # Sugeneruok ir patikimuose įdiek sertifikatus
 npx office-addin-dev-certs install
 
-# Nukopijuok į projekto aplanką
+# Sukurk aplanką sertifikatams (jis nebus keliamas į Git)
 mkdir certs
-# Windows:
+
+# Nukopijuok iš sistemos į projektą (Windows pavyzdys):
 copy "%USERPROFILE%\.office-addin-dev-certs\localhost.key" certs\server.key
 copy "%USERPROFILE%\.office-addin-dev-certs\localhost.crt" certs\server.crt
 ```
@@ -117,9 +121,10 @@ flagged-addin/
 ├── manifest.xml          ← Outlook add-in aprašas
 ├── server.js             ← Lokalus HTTPS serveris
 ├── package.json
-├── certs/                ← SSL sertifikatai (sukurk pats)
-│   ├── server.key
+├── certs/                ← SSL sertifikatai (**IGNORUOJAMA GIT**)
+│   ├── server.key        ← Jūsų privatus raktas
 │   └── server.crt
+├── .gitignore            ← Apsaugo jautrius duomenis
 └── src/
     └── taskpane.html     ← Visas UI + logika
 ```
