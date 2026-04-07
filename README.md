@@ -19,7 +19,7 @@ Add-in naudoja Microsoft Graph API skaityti laiškams — tam reikia Azure App I
 1. Eik į https://portal.azure.com → **Azure Active Directory** → **App registrations** → **New registration**
 2. Pavadinimas: `FlaggedSorterAddin`
 3. Supported account types: **Accounts in any organizational directory and personal Microsoft accounts**
-4. Redirect URI: `https://localhost:3000/src/taskpane.html` (tipas: **Single-page application**)
+4. Redirect URI: `https://dbrasas.github.io/flagged-outlook-addin/src/taskpane.html` (tipas: **Single-page application**)
 5. Spusk **Register**
 6. Nukopijuok **Application (client) ID**
 7. Eik į **API permissions** → **Add a permission** → **Microsoft Graph** → **Delegated** → pridėk:
@@ -67,25 +67,25 @@ node server.js
 Turėtum matyti:
 ```
 ✅ Add-in serveris veikia: https://localhost:3000
-📋 Manifest: https://localhost:3000/manifest.xml
+📋 Manifest: https://dbrasas.github.io/flagged-outlook-addin/manifest.xml
 ```
 
-Patikrink naršyklėje: https://localhost:3000/src/taskpane.html — turi atsidaryti UI (be klaidų SSL).
+Patikrink naršyklėje: https://dbrasas.github.io/flagged-outlook-addin/src/taskpane.html — turi atsidaryti UI.
 
 ---
 
 ## 4️⃣ Įdiek Add-in į Outlook
 
-### Naujasis Outlook (Windows):
-1. Atsidaryk Outlook → kairėje apačioje **⚙️ Settings** arba viršuje **...** meniu
-2. Eik į **Add-ins** → **My add-ins** → **Add a custom add-in** → **Add from file...**
-3. Pasirink `manifest.xml` iš projekto aplanko
-4. Patvirtink įspėjimą
+### Greičiausias būdas (Outlook Web / New Outlook):
+1. Naršyklėje atsidaryk: [https://aka.ms/olksideload](https://aka.ms/olksideload) (arba [https://outlook.office.com/mail/addins](https://outlook.office.com/mail/addins))
+2. Pasirink **My add-ins** skirtuką.
+3. Apačioje spusk **+ Add a custom add-in** → **Add from File...**
+4. Pasirink `manifest.xml` failą.
 
-### Arba per Outlook Web (outlook.com):
+### Naujasis Outlook (Windows Rankiniu būdu):
 1. Spusk ⚙️ → **View all Outlook settings** → **Mail** → **Customize actions** → **Add-ins**
 2. **My add-ins** → **Add a custom add-in** → **Add from URL**
-3. Įvesk: `https://localhost:3000/manifest.xml`
+3. Įvesk: `https://dbrasas.github.io/flagged-outlook-addin/manifest.xml`
 
 ---
 
