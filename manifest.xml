@@ -12,13 +12,13 @@
   <DefaultLocale>lt-LT</DefaultLocale>
   <DisplayName DefaultValue="Flagged by Due Date"/>
   <Description DefaultValue="Rodo flagged laiškus surūšiuotus pagal terminą"/>
-  <IconUrl DefaultValue="https://dbrasas.github.io/flagged-outlook-addin/assets/icon-64.png"/>
-  <HighResolutionIconUrl DefaultValue="https://dbrasas.github.io/flagged-outlook-addin/assets/icon-128.png"/>
-  <SupportUrl DefaultValue="https://dbrasas.github.io/flagged-outlook-addin"/>
+  <IconUrl DefaultValue="https://localhost:3000/assets/icon-64.png"/>
+  <HighResolutionIconUrl DefaultValue="https://localhost:3000/assets/icon-128.png"/>
+  <SupportUrl DefaultValue="https://localhost:3000"/>
 
   <AppDomains>
     <AppDomain>https://login.microsoftonline.com</AppDomain>
-    <AppDomain>https://dbrasas.github.io</AppDomain>
+    <AppDomain>https://localhost:3000</AppDomain>
   </AppDomains>
 
   <Hosts>
@@ -34,7 +34,7 @@
   <FormSettings>
     <Form xsi:type="ItemRead">
       <DesktopSettings>
-        <SourceLocation DefaultValue="https://dbrasas.github.io/flagged-outlook-addin/src/taskpane.html"/>
+        <SourceLocation DefaultValue="https://localhost:3000/src/taskpane.html"/>
         <RequestedHeight>250</RequestedHeight>
       </DesktopSettings>
     </Form>
@@ -83,12 +83,12 @@
 
     <Resources>
       <bt:Images>
-        <bt:Image id="Icon.16x16" DefaultValue="https://dbrasas.github.io/flagged-outlook-addin/assets/icon-16.png"/>
-        <bt:Image id="Icon.32x32" DefaultValue="https://dbrasas.github.io/flagged-outlook-addin/assets/icon-32.png"/>
-        <bt:Image id="Icon.80x80" DefaultValue="https://dbrasas.github.io/flagged-outlook-addin/assets/icon-80.png"/>
+        <bt:Image id="Icon.16x16" DefaultValue="https://localhost:3000/assets/icon-16.png"/>
+        <bt:Image id="Icon.32x32" DefaultValue="https://localhost:3000/assets/icon-32.png"/>
+        <bt:Image id="Icon.80x80" DefaultValue="https://localhost:3000/assets/icon-80.png"/>
       </bt:Images>
       <bt:Urls>
-        <bt:Url id="Pane.Url" DefaultValue="https://dbrasas.github.io/flagged-outlook-addin/src/taskpane.html"/>
+        <bt:Url id="Pane.Url" DefaultValue="https://localhost:3000/src/taskpane.html"/>
       </bt:Urls>
       <bt:ShortStrings>
         <bt:String id="Group.Label" DefaultValue="Flagged Tools"/>

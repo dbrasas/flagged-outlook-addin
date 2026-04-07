@@ -416,8 +416,13 @@
     }
   });
 
+  let isInteracting = false;
+
   // ─── Auth ─────────────────────────────────────────────────────────────────
   async function doAuth() {
+    if (isInteracting) return;
+    isInteracting = true;
+
     try {
       show('loading-content');
       const outlookEmail = Office.context.mailbox?.userProfile?.emailAddress;
@@ -428,8 +433,14 @@
       accessToken = response.accessToken;
       await loadFlaggedMails();
     } catch (err) {
-      showError('Nepavyko prisijungti: ' + err.message);
+      if (err.errorCode === "interaction_in_progress") {
+        showError("Prisijungimas jau vyksta. Jei nematote naujo lango, atnaujinkite panelę (Refresh).");
+      } else {
+        showError('Nepavyko prisijungti: ' + err.message);
+      }
       show('auth-content');
+    } finally {
+      isInteracting = false;
     }
   }
 
