@@ -373,7 +373,7 @@
   let msalInstance = null;
 
   // ─── Office init ──────────────────────────────────────────────────────────
-  Office.onReady(async () => {
+  Office.onReady(async (info) => {
     if (CLIENT_ID === 'YOUR_CLIENT_ID_HERE') {
       const authDiv = document.getElementById('auth-content');
       authDiv.innerHTML = '<p style="color:var(--accent2); font-size:14px; font-weight:600;">⚠️ Setup Required</p><p>Please enter your Azure Client ID in <code>src/taskpane.html</code></p>';
@@ -386,7 +386,7 @@
       auth: {
         clientId: CLIENT_ID,
         authority: "https://login.microsoftonline.com/common",
-        redirectUri: "https://dbrasas.github.io/flagged-outlook-addin/src/taskpane.html"
+        redirectUri: window.location.origin + window.location.pathname
       },
       cache: { cacheLocation: "localStorage" }
     };
@@ -394,15 +394,21 @@
     await msalInstance.initialize();
 
     const currentAccounts = msalInstance.getAllAccounts();
+    const outlookEmail = Office.context.mailbox?.userProfile?.emailAddress;
+
     if (currentAccounts.length > 0) {
       try {
+        // Bandome rasti paskyrą, kuri sutampa su Outlook el. paštu
+        const account = currentAccounts.find(a => a.username.toLowerCase() === outlookEmail?.toLowerCase()) || currentAccounts[0];
+        
         const response = await msalInstance.acquireTokenSilent({
           scopes: SCOPES,
-          account: currentAccounts[0]
+          account: account
         });
         accessToken = response.accessToken;
         await loadFlaggedMails();
       } catch (err) {
+        console.error("Silent token acquisition failed:", err);
         show('auth-content');
       }
     } else {
@@ -414,7 +420,11 @@
   async function doAuth() {
     try {
       show('loading-content');
-      const response = await msalInstance.loginPopup({ scopes: SCOPES });
+      const outlookEmail = Office.context.mailbox?.userProfile?.emailAddress;
+      const response = await msalInstance.loginPopup({ 
+        scopes: SCOPES,
+        loginHint: outlookEmail 
+      });
       accessToken = response.accessToken;
       await loadFlaggedMails();
     } catch (err) {
@@ -427,11 +437,15 @@
     const btn = document.getElementById('refreshBtn');
     btn.classList.add('spinning');
     try {
+      const outlookEmail = Office.context.mailbox?.userProfile?.emailAddress;
       const currentAccounts = msalInstance.getAllAccounts();
+      
       if (currentAccounts.length > 0) {
+        const account = currentAccounts.find(a => a.username.toLowerCase() === outlookEmail?.toLowerCase()) || currentAccounts[0];
+        
         const response = await msalInstance.acquireTokenSilent({
           scopes: SCOPES,
-          account: currentAccounts[0],
+          account: account,
           forceRefresh: true
         });
         accessToken = response.accessToken;
@@ -462,6 +476,13 @@
   async function loadFlaggedMails() {
     show('loading-content');
     hideError();
+
+    const outlookEmail = Office.context.mailbox?.userProfile?.emailAddress;
+    const activeAccount = msalInstance.getActiveAccount() || msalInstance.getAllAccounts()[0];
+    
+    if (activeAccount && outlookEmail && activeAccount.username.toLowerCase() !== outlookEmail.toLowerCase()) {
+      showError(`⚠️ Rodoma ${activeAccount.username} dėžutė, bet Outlook atidaryta ${outlookEmail}.`);
+    }
 
     try {
       let messages = [];
@@ -625,7 +646,7 @@
     document.getElementById('loading-content').style.display = 'none';
     document.getElementById('auth-content').style.display   = 'none';
     document.getElementById('main-content').style.display   = 'none';
-    document.getElementById(id).style.display = '';
+    document.getElementById(id).style.display = 'block';
   }
 
   function showError(msg) {
