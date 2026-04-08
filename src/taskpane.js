@@ -24,6 +24,8 @@ const FULL_DATE_FORMATTER = new Intl.DateTimeFormat("lt-LT", {
 let accessToken = null;
 let msalInstance = null;
 let isInteracting = false;
+let bootstrapPromise = null;
+let msalMode = null;
 
 const ui = {
   authBtn: null,
@@ -32,17 +34,37 @@ const ui = {
   loadingContent: null,
   mainContent: null,
   mailListContainer: null,
+  panelShell: null,
   refreshBtn: null,
 };
 
-document.addEventListener("DOMContentLoaded", initializeUi);
+document.addEventListener("DOMContentLoaded", () => {
+  initializeUi();
+  resetPaneScroll();
+  void bootstrap();
+});
 
-Office.onReady(async () => {
+async function bootstrap() {
+  if (bootstrapPromise) {
+    return bootstrapPromise;
+  }
+
+  bootstrapPromise = bootstrapInternal();
+  return bootstrapPromise;
+}
+
+async function bootstrapInternal() {
   initializeUi();
 
   if (CLIENT_ID === "YOUR_CLIENT_ID_HERE") {
     renderSetupRequired();
     return;
+  }
+
+  try {
+    await waitForOfficeReady();
+  } catch (error) {
+    console.warn("Office host is not fully ready yet. Continuing with limited context.", error);
   }
 
   try {
@@ -56,7 +78,7 @@ Office.onReady(async () => {
     showError("Nepavyko inicializuoti prisijungimo. Patikrinkite Azure konfigūraciją.");
     show("auth-content");
   }
-});
+}
 
 function initializeUi() {
   if (ui.refreshBtn) {
@@ -69,6 +91,7 @@ function initializeUi() {
   ui.loadingContent = document.getElementById("loading-content");
   ui.mainContent = document.getElementById("main-content");
   ui.mailListContainer = document.getElementById("mailListContainer");
+  ui.panelShell = document.getElementById("panelShell");
   ui.refreshBtn = document.getElementById("refreshBtn");
 
   ui.authBtn.addEventListener("click", doAuth);
@@ -77,32 +100,52 @@ function initializeUi() {
 
 async function initializeMsal() {
   if (msalInstance) {
-    return;
+    return msalInstance;
+  }
+
+  const msalGlobal = window.msal;
+  if (!msalGlobal) {
+    throw new Error("MSAL biblioteka neįkelta.");
   }
 
   const msalConfig = {
     auth: {
       clientId: CLIENT_ID,
       authority: "https://login.microsoftonline.com/common",
-      redirectUri: window.location.origin + window.location.pathname,
     },
     cache: {
       cacheLocation: "sessionStorage",
     },
   };
 
-  msalInstance = new msal.PublicClientApplication(msalConfig);
+  if (
+    supportsNestedAppAuth() &&
+    typeof msalGlobal.createNestablePublicClientApplication === "function"
+  ) {
+    try {
+      msalInstance = await msalGlobal.createNestablePublicClientApplication(msalConfig);
+      msalMode = "nestable";
+      return msalInstance;
+    } catch (error) {
+      console.warn("Nested app auth initialization failed. Falling back to browser MSAL.", error);
+    }
+  }
+
+  msalInstance = new msalGlobal.PublicClientApplication({
+    ...msalConfig,
+    auth: {
+      ...msalConfig.auth,
+      redirectUri: window.location.origin + window.location.pathname,
+    },
+  });
   await msalInstance.initialize();
+  msalMode = "browser";
+  return msalInstance;
 }
 
 async function trySilentAuthAndLoad() {
-  const account = getPreferredAccount();
-  if (!account) {
-    return false;
-  }
-
   try {
-    await acquireAccessToken({ account });
+    await acquireAccessToken();
     await loadFlaggedMails();
     return true;
   } catch (error) {
@@ -112,7 +155,7 @@ async function trySilentAuthAndLoad() {
 }
 
 function getOutlookEmail() {
-  return Office.context.mailbox?.userProfile?.emailAddress?.toLowerCase() || null;
+  return Office?.context?.mailbox?.userProfile?.emailAddress?.toLowerCase() || null;
 }
 
 function getPreferredAccount() {
@@ -121,7 +164,10 @@ function getPreferredAccount() {
   }
 
   const outlookEmail = getOutlookEmail();
-  const activeAccount = msalInstance.getActiveAccount();
+  const activeAccount =
+    typeof msalInstance.getActiveAccount === "function"
+      ? msalInstance.getActiveAccount()
+      : null;
   const accounts = msalInstance.getAllAccounts();
 
   if (activeAccount) {
@@ -133,7 +179,7 @@ function getPreferredAccount() {
     : null;
   const account = matchingAccount || accounts[0] || null;
 
-  if (account) {
+  if (account && supportsActiveAccountSelection()) {
     msalInstance.setActiveAccount(account);
   }
 
@@ -141,18 +187,41 @@ function getPreferredAccount() {
 }
 
 async function acquireAccessToken(options = {}) {
+  await initializeMsal();
+
+  const loginHint = options.loginHint || (await getLoginHint());
   const account = options.account || getPreferredAccount();
-  if (!account) {
-    throw new Error("Nėra prisijungto vartotojo.");
+  const request = {
+    scopes: SCOPES,
+    forceRefresh: Boolean(options.forceRefresh),
+  };
+
+  if (account) {
+    request.account = account;
   }
 
-  msalInstance.setActiveAccount(account);
+  if (loginHint && !request.account) {
+    request.loginHint = loginHint;
+  }
 
-  const response = await msalInstance.acquireTokenSilent({
-    scopes: SCOPES,
-    account,
-    forceRefresh: Boolean(options.forceRefresh),
-  });
+  let response;
+
+  try {
+    response = await msalInstance.acquireTokenSilent(request);
+  } catch (error) {
+    if (!request.account && request.loginHint && typeof msalInstance.ssoSilent === "function") {
+      response = await msalInstance.ssoSilent({
+        scopes: SCOPES,
+        loginHint: request.loginHint,
+      });
+    } else {
+      throw error;
+    }
+  }
+
+  if (response?.account && supportsActiveAccountSelection()) {
+    msalInstance.setActiveAccount(response.account);
+  }
 
   accessToken = response.accessToken;
   return accessToken;
@@ -163,33 +232,30 @@ async function doAuth() {
     return;
   }
 
-  if (!msalInstance) {
-    showError(
-      "Prisijungimas neinicijuotas. Atnaujinkite panelę. Jei nepadeda, uždarykite ir atidarykite add-in iš naujo."
-    );
-    show("auth-content");
-    return;
-  }
-
   isInteracting = true;
   ui.authBtn.disabled = true;
   show("loading-content");
 
   try {
+    await initializeMsal();
+
+    const loginHint = await getLoginHint();
     const response = await withTimeout(
-      msalInstance.loginPopup({
+      msalInstance.acquireTokenPopup({
         scopes: SCOPES,
-        loginHint: getOutlookEmail() || undefined,
+        loginHint: loginHint || undefined,
       }),
       AUTH_POPUP_TIMEOUT_MS,
       new Error("Prisijungimo langas neatsidarė arba buvo užblokuotas Outlook lange.")
     );
 
-    if (response.account) {
+    if (response.account && supportsActiveAccountSelection()) {
       msalInstance.setActiveAccount(response.account);
     }
 
-    accessToken = response.accessToken || (await acquireAccessToken({ account: response.account }));
+    accessToken =
+      response.accessToken ||
+      (await acquireAccessToken({ account: response.account, loginHint }));
     await loadFlaggedMails();
   } catch (error) {
     if (error?.errorCode === "interaction_in_progress") {
@@ -209,14 +275,10 @@ async function doAuth() {
 }
 
 async function refreshAll() {
-  if (!msalInstance) {
-    show("auth-content");
-    return;
-  }
-
   ui.refreshBtn.classList.add("spinning");
 
   try {
+    await initializeMsal();
     await acquireAccessToken({ forceRefresh: true });
     await loadFlaggedMails();
   } catch (error) {
@@ -748,20 +810,20 @@ function renderSetupRequired() {
 }
 
 function show(id) {
-  ui.loadingContent.style.display = "none";
-  ui.authContent.style.display = "none";
-  ui.mainContent.style.display = "none";
-  document.getElementById(id).style.display = "block";
+  ui.loadingContent.hidden = id !== "loading-content";
+  ui.authContent.hidden = id !== "auth-content";
+  ui.mainContent.hidden = id !== "main-content";
+  resetPaneScroll();
 }
 
 function showError(message) {
   ui.errorBox.textContent = message;
-  ui.errorBox.style.display = "block";
+  ui.errorBox.hidden = false;
 }
 
 function hideError() {
   ui.errorBox.textContent = "";
-  ui.errorBox.style.display = "none";
+  ui.errorBox.hidden = true;
 }
 
 function formatError(error) {
@@ -787,5 +849,71 @@ function withTimeout(promise, timeoutMs, timeoutError) {
     if (timeoutId !== null) {
       window.clearTimeout(timeoutId);
     }
+  });
+}
+
+async function getLoginHint() {
+  try {
+    if (typeof Office !== "undefined" && Office.auth?.getAuthContext) {
+      const authContext = await Office.auth.getAuthContext();
+      if (authContext?.userPrincipalName) {
+        return authContext.userPrincipalName;
+      }
+    }
+  } catch (error) {
+    console.warn("Could not get Office login hint.", error);
+  }
+
+  return getOutlookEmail();
+}
+
+function supportsNestedAppAuth() {
+  try {
+    return Boolean(Office?.context?.requirements?.isSetSupported?.("NestedAppAuth", "1.1"));
+  } catch {
+    return false;
+  }
+}
+
+function supportsActiveAccountSelection() {
+  return msalMode !== "nestable" && typeof msalInstance?.setActiveAccount === "function";
+}
+
+function waitForOfficeReady(timeoutMs = 8000) {
+  return new Promise((resolve, reject) => {
+    if (typeof Office === "undefined" || typeof Office.onReady !== "function") {
+      reject(new Error("Office.js nepasiekiamas."));
+      return;
+    }
+
+    let settled = false;
+    const timeoutId = window.setTimeout(() => {
+      if (!settled) {
+        settled = true;
+        reject(new Error("Office.onReady timeout."));
+      }
+    }, timeoutMs);
+
+    Office.onReady((info) => {
+      if (settled) {
+        return;
+      }
+
+      settled = true;
+      window.clearTimeout(timeoutId);
+      resolve(info);
+    });
+  });
+}
+
+function resetPaneScroll() {
+  window.requestAnimationFrame(() => {
+    if (ui.panelShell) {
+      ui.panelShell.scrollTop = 0;
+    }
+
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+    window.scrollTo(0, 0);
   });
 }

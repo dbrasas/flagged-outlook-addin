@@ -12,8 +12,8 @@
   <link rel="stylesheet" href="./taskpane.generated.css"/>
 </head>
 <body>
-<div class="panel-shell">
-  <div class="relative z-10 flex min-h-screen flex-col">
+<div class="panel-shell" id="panelShell">
+  <div class="panel-frame relative z-10">
     <header class="border-b border-border/80 bg-background/90 backdrop-blur-sm">
       <div class="flex items-center justify-between gap-3 px-4 py-4">
         <div class="flex min-w-0 items-center gap-3">
@@ -46,8 +46,8 @@
       </div>
     </header>
 
-    <main class="flex flex-1 flex-col gap-4 px-4 py-4">
-      <div class="status-banner" id="errorBox" role="alert"></div>
+    <main class="panel-main px-4 py-4">
+      <div class="status-banner" id="errorBox" role="alert" hidden></div>
 
       <section id="loading-content" class="loading-shell">
         <div class="card state-card border-border/80 bg-card/85 shadow-xl shadow-black/20">
@@ -63,7 +63,7 @@
         </div>
       </section>
 
-      <section id="auth-content" class="auth-shell">
+      <section id="auth-content" class="auth-shell" hidden>
         <div class="card state-card border-border/80 bg-card/88 shadow-xl shadow-black/20">
           <div class="card-content state-card-content state-card-content-auth">
             <div class="auth-icon state-card-icon" aria-hidden="true">
@@ -104,7 +104,7 @@
         </div>
       </section>
 
-      <section id="main-content" class="space-y-4">
+      <section id="main-content" class="space-y-4" hidden>
         <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <article class="card stat-card stat-overdue">
             <div class="card-content p-4">
