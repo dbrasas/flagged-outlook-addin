@@ -128,7 +128,9 @@ function renderDemo(messages) {
       continue;
     }
 
-    fragment.appendChild(buildSectionHeader(section, items.length));
+    const sectionEl = document.createElement("section");
+    sectionEl.className = "mail-section";
+    sectionEl.appendChild(buildSectionHeader(section, items.length));
 
     const list = document.createElement("div");
     list.className = "mail-list";
@@ -137,7 +139,8 @@ function renderDemo(messages) {
       list.appendChild(buildMailCard(item));
     }
 
-    fragment.appendChild(list);
+    sectionEl.appendChild(list);
+    fragment.appendChild(sectionEl);
   }
 
   mailListContainer.appendChild(fragment);

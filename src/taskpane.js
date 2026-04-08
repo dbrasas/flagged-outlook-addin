@@ -26,6 +26,7 @@ let msalInstance = null;
 let isInteracting = false;
 let bootstrapPromise = null;
 let msalMode = null;
+let officeReadyPromise = null;
 let viewportResetBound = false;
 
 const ui = {
@@ -38,6 +39,13 @@ const ui = {
   panelShell: null,
   refreshBtn: null,
 };
+
+if (typeof Office !== "undefined") {
+  const primedOfficeReady = primeOfficeRuntime();
+  if (primedOfficeReady && typeof primedOfficeReady.catch === "function") {
+    primedOfficeReady.catch(() => {});
+  }
+}
 
 document.addEventListener("DOMContentLoaded", () => {
   initializeUi();
@@ -80,6 +88,36 @@ async function bootstrapInternal() {
     showError("Nepavyko inicializuoti prisijungimo. Patikrinkite Azure konfigūraciją.");
     show("auth-content");
   }
+}
+
+function primeOfficeRuntime() {
+  if (officeReadyPromise) {
+    return officeReadyPromise;
+  }
+
+  if (typeof Office === "undefined") {
+    officeReadyPromise = Promise.reject(new Error("Office.js nepasiekiamas."));
+    return officeReadyPromise;
+  }
+
+  if (typeof Office.initialize !== "function") {
+    Office.initialize = function () {};
+  }
+
+  if (typeof Office.onReady !== "function") {
+    officeReadyPromise = Promise.reject(new Error("Office.onReady nepasiekiamas."));
+    return officeReadyPromise;
+  }
+
+  officeReadyPromise = new Promise((resolve, reject) => {
+    try {
+      Office.onReady(resolve);
+    } catch (error) {
+      reject(error);
+    }
+  });
+
+  return officeReadyPromise;
 }
 
 function initializeUi() {
@@ -605,7 +643,9 @@ function renderMails(messages) {
       continue;
     }
 
-    fragment.appendChild(buildSectionHeader(section, items.length));
+    const sectionEl = document.createElement("section");
+    sectionEl.className = "mail-section";
+    sectionEl.appendChild(buildSectionHeader(section, items.length));
 
     const list = document.createElement("div");
     list.className = "mail-list";
@@ -615,7 +655,8 @@ function renderMails(messages) {
       totalRendered += 1;
     }
 
-    fragment.appendChild(list);
+    sectionEl.appendChild(list);
+    fragment.appendChild(sectionEl);
   }
 
   if (totalRendered === 0) {
@@ -894,30 +935,11 @@ function supportsActiveAccountSelection() {
 }
 
 function waitForOfficeReady(timeoutMs = 8000) {
-  return new Promise((resolve, reject) => {
-    if (typeof Office === "undefined" || typeof Office.onReady !== "function") {
-      reject(new Error("Office.js nepasiekiamas."));
-      return;
-    }
-
-    let settled = false;
-    const timeoutId = window.setTimeout(() => {
-      if (!settled) {
-        settled = true;
-        reject(new Error("Office.onReady timeout."));
-      }
-    }, timeoutMs);
-
-    Office.onReady((info) => {
-      if (settled) {
-        return;
-      }
-
-      settled = true;
-      window.clearTimeout(timeoutId);
-      resolve(info);
-    });
-  });
+  return withTimeout(
+    Promise.resolve().then(() => primeOfficeRuntime()),
+    timeoutMs,
+    new Error("Office.onReady timeout.")
+  );
 }
 
 function schedulePaneScrollReset() {
