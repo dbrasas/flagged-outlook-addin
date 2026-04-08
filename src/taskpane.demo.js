@@ -62,6 +62,8 @@ const FULL_DATE_FORMATTER = new Intl.DateTimeFormat("lt-LT", {
 });
 
 document.addEventListener("DOMContentLoaded", initializeDemo);
+window.addEventListener("load", schedulePaneScrollReset);
+window.addEventListener("pageshow", schedulePaneScrollReset);
 
 function initializeDemo() {
   const refreshBtn = document.getElementById("refreshBtn");
@@ -71,6 +73,7 @@ function initializeDemo() {
     window.setTimeout(() => refreshBtn.classList.remove("spinning"), 500);
   });
 
+  schedulePaneScrollReset();
   renderDemo(DEMO_MESSAGES);
 }
 
@@ -138,6 +141,7 @@ function renderDemo(messages) {
   }
 
   mailListContainer.appendChild(fragment);
+  schedulePaneScrollReset();
 }
 
 function compareMessages(a, b) {
@@ -197,10 +201,6 @@ function buildMailCard(message) {
   const row1 = document.createElement("div");
   row1.className = "mail-row1";
 
-  const kicker = document.createElement("span");
-  kicker.className = "mail-kicker";
-  kicker.textContent = "Flagged";
-
   const meta = document.createElement("div");
   meta.className = "mail-meta";
 
@@ -215,7 +215,7 @@ function buildMailCard(message) {
   badge.title = formatExactDueDate(message._dueDate);
 
   meta.appendChild(subject);
-  row1.append(kicker, meta, badge);
+  row1.append(meta, badge);
 
   const row2 = document.createElement("div");
   row2.className = "mail-row2";
@@ -282,4 +282,35 @@ function startOfDay(date) {
   const normalized = new Date(date);
   normalized.setHours(0, 0, 0, 0);
   return normalized;
+}
+
+function schedulePaneScrollReset() {
+  const delays = [0, 80, 240, 600];
+
+  for (const delayMs of delays) {
+    window.setTimeout(resetPaneScroll, delayMs);
+  }
+}
+
+function resetPaneScroll() {
+  const panelShell = document.getElementById("panelShell");
+  const targets = [panelShell, document.scrollingElement, document.documentElement, document.body];
+
+  window.requestAnimationFrame(() => {
+    for (const target of targets) {
+      if (!target) {
+        continue;
+      }
+
+      if (typeof target.scrollTo === "function") {
+        target.scrollTo({ top: 0, left: 0, behavior: "auto" });
+      }
+
+      if ("scrollTop" in target) {
+        target.scrollTop = 0;
+      }
+    }
+
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  });
 }

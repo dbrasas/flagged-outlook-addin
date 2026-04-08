@@ -26,6 +26,7 @@ let msalInstance = null;
 let isInteracting = false;
 let bootstrapPromise = null;
 let msalMode = null;
+let viewportResetBound = false;
 
 const ui = {
   authBtn: null,
@@ -40,7 +41,8 @@ const ui = {
 
 document.addEventListener("DOMContentLoaded", () => {
   initializeUi();
-  resetPaneScroll();
+  bindViewportResetHandlers();
+  schedulePaneScrollReset();
   void bootstrap();
 });
 
@@ -96,6 +98,22 @@ function initializeUi() {
 
   ui.authBtn.addEventListener("click", doAuth);
   ui.refreshBtn.addEventListener("click", refreshAll);
+}
+
+function bindViewportResetHandlers() {
+  if (viewportResetBound) {
+    return;
+  }
+
+  viewportResetBound = true;
+
+  window.addEventListener("load", schedulePaneScrollReset);
+  window.addEventListener("pageshow", schedulePaneScrollReset);
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) {
+      schedulePaneScrollReset();
+    }
+  });
 }
 
 async function initializeMsal() {
@@ -664,10 +682,6 @@ function buildMailCard(message) {
   const row1 = document.createElement("div");
   row1.className = "mail-row1";
 
-  const kicker = document.createElement("span");
-  kicker.className = "mail-kicker";
-  kicker.textContent = "Flagged";
-
   const meta = document.createElement("div");
   meta.className = "mail-meta";
 
@@ -682,7 +696,7 @@ function buildMailCard(message) {
   badge.title = formatExactDueDate(message._dueDate);
 
   meta.appendChild(subject);
-  row1.append(kicker, meta, badge);
+  row1.append(meta, badge);
 
   const row2 = document.createElement("div");
   row2.className = "mail-row2";
@@ -813,7 +827,7 @@ function show(id) {
   ui.loadingContent.hidden = id !== "loading-content";
   ui.authContent.hidden = id !== "auth-content";
   ui.mainContent.hidden = id !== "main-content";
-  resetPaneScroll();
+  schedulePaneScrollReset();
 }
 
 function showError(message) {
@@ -906,14 +920,37 @@ function waitForOfficeReady(timeoutMs = 8000) {
   });
 }
 
+function schedulePaneScrollReset() {
+  const delays = [0, 80, 240, 600];
+
+  for (const delayMs of delays) {
+    window.setTimeout(resetPaneScroll, delayMs);
+  }
+}
+
 function resetPaneScroll() {
   window.requestAnimationFrame(() => {
-    if (ui.panelShell) {
-      ui.panelShell.scrollTop = 0;
-    }
+    scrollTargetToTop(ui.panelShell);
+    scrollTargetToTop(document.scrollingElement);
+    scrollTargetToTop(document.documentElement);
+    scrollTargetToTop(document.body);
 
-    document.documentElement.scrollTop = 0;
-    document.body.scrollTop = 0;
-    window.scrollTo(0, 0);
+    if (typeof window.scrollTo === "function") {
+      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    }
   });
+}
+
+function scrollTargetToTop(target) {
+  if (!target) {
+    return;
+  }
+
+  if (typeof target.scrollTo === "function") {
+    target.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }
+
+  if ("scrollTop" in target) {
+    target.scrollTop = 0;
+  }
 }
