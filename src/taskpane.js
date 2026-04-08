@@ -628,10 +628,10 @@ function renderMails(messages) {
   ui.mailListContainer.replaceChildren();
 
   const sectionDefs = [
-    { key: "overdue", label: "Vėluoja", dot: "var(--mail-overdue)" },
-    { key: "today", label: "Šiandien", dot: "var(--mail-today)" },
-    { key: "soon", label: "Artimiausi", dot: "var(--mail-soon)" },
-    { key: "nodate", label: "Be termino", dot: "var(--mail-nodate)" },
+    { key: "overdue", label: "Vėluoja", dot: "bg-gray-800", badgeColor: "bg-red-50 text-red-700 ring-red-600/10" },
+    { key: "today", label: "Šiandien", dot: "bg-gray-700", badgeColor: "bg-amber-50 text-amber-700 ring-amber-600/20" },
+    { key: "soon", label: "Artimiausi", dot: "bg-gray-400", badgeColor: "bg-blue-50 text-blue-700 ring-blue-700/10" },
+    { key: "nodate", label: "Be termino", dot: "bg-gray-300", badgeColor: "bg-gray-50 text-gray-600 ring-gray-500/10" },
   ];
 
   let totalRendered = 0;
@@ -644,14 +644,14 @@ function renderMails(messages) {
     }
 
     const sectionEl = document.createElement("section");
-    sectionEl.className = "mail-section";
+    sectionEl.className = "space-y-3";
     sectionEl.appendChild(buildSectionHeader(section, items.length));
 
     const list = document.createElement("div");
-    list.className = "mail-list";
+    list.className = "space-y-2.5";
 
     for (const item of items) {
-      list.appendChild(buildMailCard(item));
+      list.appendChild(buildMailCard(item, section));
       totalRendered += 1;
     }
 
@@ -688,72 +688,62 @@ function compareReceivedDateDesc(a, b) {
 }
 
 function buildSectionHeader(section, count) {
-  const header = document.createElement("div");
-  header.className = "section-header";
-
-  const copy = document.createElement("div");
-  copy.className = "section-copy";
+  const header = document.createElement("header");
+  header.className = "flex items-center px-1";
 
   const dot = document.createElement("div");
-  dot.className = "section-dot";
-  dot.style.background = section.dot;
+  dot.className = "h-2 w-2 rounded-full " + section.dot;
 
-  const title = document.createElement("span");
-  title.className = "section-title";
+  const title = document.createElement("h3");
+  title.className = "ml-2.5 text-xs font-medium uppercase tracking-wider text-gray-600";
   title.textContent = section.label;
 
   const countEl = document.createElement("span");
-  countEl.className = "badge badge-outline section-count";
+  countEl.className = "ml-auto flex h-6 w-6 items-center justify-center rounded-full border border-gray-200 bg-white text-xs font-medium text-gray-600 shadow-sm";
   countEl.textContent = String(count);
 
-  copy.append(dot, title);
-  header.append(copy, countEl);
+  header.append(dot, title, countEl);
   return header;
 }
 
-function buildMailCard(message) {
+function buildMailCard(message, section) {
   const card = document.createElement("button");
   card.type = "button";
-  card.className = "mail-item " + message._category;
+  card.className = "group relative w-full overflow-hidden text-left rounded-2xl border border-gray-200/80 bg-white p-4 pl-5 shadow-sm transition-all hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-300 focus-visible:ring-offset-2";
   card.setAttribute("aria-label", "Atidaryti laišką: " + (message.subject || "be temos"));
 
-  const body = document.createElement("div");
-  body.className = "mail-item-body";
+  const line = document.createElement("div");
+  line.className = "absolute bottom-0 left-0 top-0 w-1.5 " + section.dot;
 
-  const row1 = document.createElement("div");
-  row1.className = "mail-row1";
+  const flexTop = document.createElement("div");
+  flexTop.className = "flex items-start justify-between gap-4";
 
-  const meta = document.createElement("div");
-  meta.className = "mail-meta";
-
-  const subject = document.createElement("div");
-  subject.className = "mail-subject";
+  const subject = document.createElement("h4");
+  subject.className = "text-base font-medium leading-tight text-gray-900 line-clamp-2";
   subject.textContent = message.subject || "(be temos)";
   subject.title = subject.textContent;
 
   const badge = document.createElement("span");
-  badge.className = "badge mail-badge " + message._category;
+  badge.className = "shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset " + section.badgeColor;
   badge.textContent = formatDueBadge(message._dueDate, message._category);
   badge.title = formatExactDueDate(message._dueDate);
 
-  meta.appendChild(subject);
-  row1.append(meta, badge);
+  flexTop.append(subject, badge);
 
-  const row2 = document.createElement("div");
-  row2.className = "mail-row2";
+  const flexBottom = document.createElement("div");
+  flexBottom.className = "mt-2.5 flex items-center justify-between";
 
   const from = document.createElement("span");
-  from.className = "mail-from";
-  from.textContent =
-    message.from?.emailAddress?.name || message.from?.emailAddress?.address || "?";
+  from.className = "text-sm text-gray-500 truncate mr-2";
+  from.textContent = message.from?.emailAddress?.name || message.from?.emailAddress?.address || "?";
 
   const received = document.createElement("span");
-  received.className = "mail-received";
+  received.className = "shrink-0 text-sm text-gray-400";
   received.textContent = formatReceivedDate(message.receivedDateTime);
 
-  row2.append(from, received);
-  body.append(row1, row2);
-  card.appendChild(body);
+  flexBottom.append(from, received);
+
+  card.append(line, flexTop, flexBottom);
 
   card.addEventListener("click", () => openMessageLink(message.webLink));
 
@@ -762,18 +752,18 @@ function buildMailCard(message) {
 
 function buildEmptyState() {
   const empty = document.createElement("div");
-  empty.className = "empty";
+  empty.className = "flex flex-col items-center justify-center rounded-2xl border border-gray-200/80 bg-white p-8 text-center shadow-sm";
 
   const icon = document.createElement("div");
-  icon.className = "empty-icon";
-  icon.textContent = "✓";
+  icon.className = "flex h-12 w-12 items-center justify-center rounded-full bg-gray-50 text-gray-400 mb-4 ring-1 ring-gray-900/5";
+  icon.innerHTML = `<svg viewBox="0 0 24 24" fill="none" class="h-6 w-6" aria-hidden="true"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 
-  const title = document.createElement("p");
-  title.className = "text-sm font-semibold tracking-tight";
+  const title = document.createElement("h3");
+  title.className = "text-sm font-semibold tracking-tight text-gray-900";
   title.textContent = "Nėra flagged laiškų";
 
   const text = document.createElement("p");
-  text.className = "mt-2 text-sm leading-6 text-muted-foreground";
+  text.className = "mt-2 text-sm leading-6 text-gray-500 max-w-[200px]";
   text.textContent = "Kai laiškai bus pažymėti, jie čia atsiras surikiuoti pagal terminą.";
 
   empty.append(icon, title, text);
@@ -865,20 +855,20 @@ function renderSetupRequired() {
 }
 
 function show(id) {
-  ui.loadingContent.hidden = id !== "loading-content";
-  ui.authContent.hidden = id !== "auth-content";
-  ui.mainContent.hidden = id !== "main-content";
+  ui.loadingContent.classList.toggle("hidden", id !== "loading-content");
+  ui.authContent.classList.toggle("hidden", id !== "auth-content");
+  ui.mainContent.classList.toggle("hidden", id !== "main-content");
   schedulePaneScrollReset();
 }
 
 function showError(message) {
   ui.errorBox.textContent = message;
-  ui.errorBox.hidden = false;
+  ui.errorBox.classList.remove("hidden");
 }
 
 function hideError() {
   ui.errorBox.textContent = "";
-  ui.errorBox.hidden = true;
+  ui.errorBox.classList.add("hidden");
 }
 
 function formatError(error) {
