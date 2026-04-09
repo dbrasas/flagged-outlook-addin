@@ -177,6 +177,17 @@ Quick UI verification:
 - Check that the buttons, badges, separators, and cards render with Starting Point UI styling.
 - Sign in and verify flagged messages render as styled cards grouped by `Vėluoja`, `Šiandien`, `Artimiausi`, and `Be termino`.
 
+## Common Issues & Troubleshooting
+
+**1. Desktop Add-in opens with blank white space**
+If the add-in pane appears blank or distorts its size pushing content out of view on desktop clients, it's typically caused by viewport vertical height units (e.g., `100vh` or Tailwind `min-h-screen`). 
+- **Fix:** Desktop's Edge WebView often miscalculates `100vh`. Constrain the `html` and `body` strictly using `h-full overflow-hidden`, and apply explicitly contained scrolling (`h-full overflow-y-auto`) to the topmost application wrapper `div`.
+
+**2. Outlook throws "Add-in Error" asking to Retry/Start**
+If the add-in strictly refuses to load initially, showing an error screen, but works seamlessly after clicking "Retry", the Office host timed out waiting for `Office.onReady()` to resolve.
+- **Fix 1 (CSP):** `office.js` silently fetches `MicrosoftAjax.js` from `ajax.aspnetcdn.com` in OWA environments. Ensure your `taskpane.html` Content-Security-Policy `script-src` directive explicitly allows `https://ajax.aspnetcdn.com`. A blocked script permanently halts Office initialization.
+- **Fix 2 (Lifecycle Race Conditions):** Do not manually assign an empty placeholder to `Office.initialize` before calling `Office.onReady`. Defining both creates a host race condition that fails the strict initialization checks.
+
 ## Project structure
 
 ```text
