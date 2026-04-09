@@ -100,9 +100,6 @@ function primeOfficeRuntime() {
     return officeReadyPromise;
   }
 
-  if (typeof Office.initialize !== "function") {
-    Office.initialize = function () {};
-  }
 
   if (typeof Office.onReady !== "function") {
     officeReadyPromise = Promise.reject(new Error("Office.onReady nepasiekiamas."));
