@@ -357,6 +357,24 @@ async function graphGet(url) {
   });
 }
 
+async function graphPost(url, body) {
+  if (!accessToken) {
+    throw new Error("Nėra Microsoft Graph prieigos rakto.");
+  }
+
+  const requestUrl = url.startsWith("http") ? url : GRAPH_BASE_URL + url;
+  return fetchJsonWithRetry(requestUrl, {
+    method: "POST",
+    headers: {
+      Authorization: "Bearer " + accessToken,
+      "Content-Type": "application/json",
+      Prefer: 'outlook.timezone="' + Intl.DateTimeFormat().resolvedOptions().timeZone + '"',
+    },
+    body: JSON.stringify(body),
+    cache: "no-store",
+  });
+}
+
 async function fetchJsonWithRetry(url, init) {
   let lastError = null;
 
@@ -742,7 +760,7 @@ function buildMailCard(message, section) {
 
   card.append(line, flexTop, flexBottom);
 
-  card.addEventListener("click", () => openMessageLink(message.webLink));
+  card.addEventListener("click", () => openMessageLink(message));
 
   return card;
 }
@@ -767,13 +785,31 @@ function buildEmptyState() {
   return empty;
 }
 
-function openMessageLink(webLink) {
-  if (!webLink) {
+async function openMessageLink(message) {
+  if (typeof Office !== "undefined" && Office.context && Office.context.mailbox) {
+    try {
+      const translateResponse = await graphPost("/me/translateExchangeIds", {
+        inputIds: [message.id],
+        sourceIdType: "restId",
+        targetIdType: "ewsId"
+      });
+
+      if (translateResponse?.value?.[0]?.targetId) {
+        const ewsId = translateResponse.value[0].targetId;
+        Office.context.mailbox.displayMessageForm(ewsId);
+        return;
+      }
+    } catch (error) {
+      console.warn("Nepavyko atidaryti laiško per Outlook programą, bandoma naršyklėje.", error);
+    }
+  }
+
+  if (!message.webLink) {
     return;
   }
 
   try {
-    const url = new URL(webLink);
+    const url = new URL(message.webLink);
     if (url.protocol !== "https:") {
       throw new Error("Nesaugi nuoroda.");
     }
